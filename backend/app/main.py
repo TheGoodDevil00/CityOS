@@ -42,8 +42,8 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="CityOS API",
-    description="CityOS API — WalkSafe & Multi-Domain Civic Platform",
+    title="CiVix API",
+    description="CiVix API — Safety-Aware Walking Navigation",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -78,7 +78,7 @@ class NgrokHeaderMiddleware(BaseHTTPMiddleware):
 app.add_middleware(NgrokHeaderMiddleware)
 
 # Register WalkSafe module router under /walksafe and at root for backward compatibility
-app.include_router(walksafe_router, prefix="/walksafe", tags=["WalkSafe"])
+app.include_router(walksafe_router, prefix="/walksafe", tags=["CiVix"])
 app.include_router(walksafe_router)
 
 # Register Infrastructure module router under /infra
@@ -90,14 +90,14 @@ app.include_router(waste_router, prefix="/waste", tags=["Waste Management"])
 # Register Dashboard module router under /dashboard
 app.include_router(dashboard_router, prefix="/dashboard", tags=["Dashboard"])
 
-# Mount static web dashboard UI
-static_dir = Path(__file__).parent / "static" / "dashboard"
+# Mount static web dashboard UI (lives in backend/static, next to app/)
+static_dir = Path(__file__).resolve().parent.parent / "static" / "dashboard"
 if static_dir.exists():
     app.mount("/dashboard-ui", StaticFiles(directory=str(static_dir), html=True), name="dashboard-ui")
 
 @app.get("/")
 async def root():
-    return {"message": "WalkSafe API is running", "status": "online"}
+    return {"message": "CiVix API is running", "status": "online"}
 
 
 @app.get("/city")

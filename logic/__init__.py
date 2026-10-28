@@ -1,1 +1,1 @@
-"""WalkSafe safety-data generation and serving package."""
+"""CiVix safety-data generation and serving package."""

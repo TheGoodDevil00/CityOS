@@ -3,7 +3,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/app_config.dart';
-import 'screens/splash_screen.dart';
 import 'widgets/auth_gate.dart';
 
 Future<void> main() async {
@@ -38,6 +37,10 @@ Future<void> main() async {
     anonKey: AppConfig.supabaseAnonKey,
   );
 
+  final String supabaseHost =
+      Uri.tryParse(AppConfig.supabaseUrl)?.host ?? 'unknown';
+  debugPrint('Supabase initialized with endpoint host: $supabaseHost');
+
   await Hive.initFlutter();
   await Hive.openBox('walksafe_saved_places');
 
@@ -58,7 +61,7 @@ class WalkSafeApp extends StatelessWidget {
     );
 
     return MaterialApp(
-      title: 'WalkSafe',
+      title: 'CiVix',
       debugShowCheckedModeBanner: false,
       theme: baseTheme.copyWith(
         scaffoldBackgroundColor: const Color(0xFFF4F7FB),
@@ -79,7 +82,7 @@ class WalkSafeApp extends StatelessWidget {
           contentTextStyle: TextStyle(color: Colors.white),
         ),
       ),
-      home: const SplashScreen(nextScreen: AuthGate()),
+      home: const AuthGate(),
     );
   }
 }
