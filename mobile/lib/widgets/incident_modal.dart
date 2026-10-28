@@ -88,6 +88,22 @@ class _IncidentModalState extends State<IncidentModal> {
       label: 'Unsafe infrastructure',
       value: 'Unsafe infrastructure',
     ),
+    _IncidentCategory(
+      label: 'No shade / heavy sun',
+      value: 'No shade / heavy sun',
+    ),
+    _IncidentCategory(
+      label: 'Shade blocked',
+      value: 'Shade blocked (overgrown / construction)',
+    ),
+    _IncidentCategory(
+      label: 'Heat stress',
+      value: 'Heat stress / too hot to walk',
+    ),
+    _IncidentCategory(
+      label: 'Cool shaded spot',
+      value: 'Cool shaded spot / water available',
+    ),
   ];
 
   final ReportingApiService _reportingApiService = ReportingApiService();
@@ -181,7 +197,7 @@ class _IncidentModalState extends State<IncidentModal> {
       builder: (_) => AlertDialog(
         title: const Text('Location required for SOS'),
         content: const Text(
-          'WalkSafe needs your GPS location to send an accurate SOS alert.\n\n'
+          'ResilientSteps needs your GPS location to send an accurate SOS alert.\n\n'
           'Please enable location permissions in your phone settings, then try again.\n\n'
           'If you need immediate help, call 112.',
         ),
@@ -208,7 +224,7 @@ class _IncidentModalState extends State<IncidentModal> {
       builder: (_) => AlertDialog(
         title: const Text('Authorities Placeholder'),
         content: const Text(
-          'Demo only. WalkSafe will not place a call or send an SMS to authorities from this screen.\n\n'
+          'Demo only. ResilientSteps will not place a call or send an SMS to authorities from this screen.\n\n'
           'If you need immediate help, call 112 yourself right away.',
         ),
         actions: <Widget>[
@@ -420,7 +436,7 @@ class _IncidentModalState extends State<IncidentModal> {
                     ),
                     child: Icon(
                       broadcastInProgress
-                          ? Icons.sos_rounded
+                          ? Icons.emergency_rounded
                           : Icons.sms_rounded,
                       color: accentColor,
                     ),
@@ -442,7 +458,7 @@ class _IncidentModalState extends State<IncidentModal> {
                         const SizedBox(height: 6),
                         Text(
                           broadcastInProgress
-                              ? 'WalkSafe is sending live SMS updates directly from this phone to your trusted contacts.'
+                              ? 'ResilientSteps is sending live SMS updates directly from this phone to your trusted contacts.'
                               : 'Trigger SOS to begin device-local SMS alerts and live updates for your trusted contacts.',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: const Color(0xFF4F6076),
@@ -588,7 +604,6 @@ class _IncidentModalState extends State<IncidentModal> {
       ),
     );
   }
-
 }
 
 class _CategoryPill extends StatelessWidget {

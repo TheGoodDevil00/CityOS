@@ -8,10 +8,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.auth_middleware import optional_auth
 from app.core.rate_limiter import route_rate_limiter
-from app.modules.walksafe.services.risk_engine import score_route
+from app.modules.walksafe.services.risk_engine import PREFER_OPTIONS, score_route
 from app.modules.walksafe.services.routing_service import get_safe_route
 from app.modules.walksafe.services.safety_zone_service import (
     get_safety_zones as load_safety_zones,
+)
+from app.modules.walksafe.services.nearby_places_service import (
+    ALL_CATEGORY,
+    CATEGORY_FILTERS,
+    MAX_RADIUS_METERS,
+    find_nearby_places,
 )
 
 router = APIRouter()
@@ -78,6 +84,43 @@ class RouteCoordinates(BaseModel):
     coordinates: List[Coordinate]
 
 
+@router.get("/nearby-places")
+async def nearby_places(
+    lat: float,
+    lon: float,
+    category: str,
+    radius_m: int = 3000,
+    _user: str | None = Depends(optional_auth),
+):
+    if not -90 <= lat <= 90 or not -180 <= lon <= 180:
+        raise HTTPException(status_code=422, detail="Invalid coordinates.")
+    if category != ALL_CATEGORY and category not in CATEGORY_FILTERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported nearby category: {category}.",
+        )
+    if not 100 <= radius_m <= MAX_RADIUS_METERS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"radius_m must be between 100 and {MAX_RADIUS_METERS}.",
+        )
+    try:
+        places = await find_nearby_places(
+            lat=lat,
+            lon=lon,
+            category=category,
+            radius_m=radius_m,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {
+        "category": category,
+        "center": {"lat": lat, "lon": lon},
+        "radius_m": radius_m,
+        "places": places,
+    }
+
+
 @router.get("/route", response_model=Dict[str, List[Dict[str, float]]])
 async def get_route(
     start_lat: float,
@@ -118,10 +161,20 @@ async def route_safe(
     start_lon: float,
     end_lat: float,
     end_lon: float,
+    prefer: str = "balanced",
     db: AsyncSession = Depends(get_db),
     _user: str | None = Depends(optional_auth),
     _rate: None = Depends(route_rate_limiter),
 ):
+    if prefer not in PREFER_OPTIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Unsupported prefer value '{prefer}'. "
+                f"Expected one of: {', '.join(PREFER_OPTIONS)}."
+            ),
+        )
+
     try:
         route = await get_safe_route(start_lat, start_lon, end_lat, end_lon)
     except RuntimeError as exc:
@@ -133,7 +186,7 @@ async def route_safe(
             detail="No route or safety data found for this route area.",
         ) from exc
 
-    score = await score_route(route["coordinates"], db)
+    score = await score_route(route["coordinates"], db, prefer=prefer)
     score["coordinates"] = route["coordinates"]
     score["distance_km"] = route["distance_km"]
     score["duration_minutes"] = route["duration_minutes"]
