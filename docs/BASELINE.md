@@ -1,9 +1,9 @@
-# WalkSafe — Current-State Baseline
+# ResilientSteps — Current-State Baseline
 
-> **Purpose**: This document records the exact state of the WalkSafe repository as it exists
+> **Purpose**: This document records the exact state of the ResilientSteps repository as it exists
 > today. Every file path, table name, column, endpoint, and env var listed here has been
-> verified against the source code. Any agent or developer working on the CityOS migration
-> **must read this document first** to avoid inventing phantom entities or contradicting
+> verified against the source code. Any agent or developer working on the ResilientSteps
+> codebase **must read this document first** to avoid inventing phantom entities or contradicting
 > existing systems.
 >
 > Last verified: 2026-08-07
@@ -13,7 +13,7 @@
 ## 1. Repository Structure
 
 ```
-CityOS/
+ResilientSteps/
 ├── ARCHITECTURE.md                    High-level system description
 ├── README.md                          Full project documentation (578 lines)
 ├── RULES.md                           Agent constraint rules
@@ -253,7 +253,7 @@ Run with: `cd backend && alembic upgrade head`
 
 ### FastAPI Application
 
-- **Title**: "WalkSafe API"
+- **Title**: "ResilientSteps API"
 - **Entrypoint**: `backend/app/main.py` → `app = FastAPI(...)`
 - **Run**: `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload`
 - **Lifespan**: On startup, warms the safety dataset cache (loads all `road_segments` + `safety_zones` into an in-memory STRtree)
@@ -268,7 +268,7 @@ Run with: `cd backend && alembic upgrade head`
 
 | Method | Path | Auth | Rate Limit | Description |
 |--------|------|------|------------|-------------|
-| `GET` | `/` | None | None | Returns `{"message": "WalkSafe API is running", "status": "online"}` |
+| `GET` | `/` | None | None | Returns `{"message": "ResilientSteps API is running", "status": "online"}` |
 | `GET` | `/ready` | None | None | Readiness probe — 200 when cache warm, 503 during startup |
 
 #### Routing (`app/routers/routing.py`)
@@ -448,15 +448,16 @@ The backbone of backend performance. A singleton `SafetyDatasetCache` that:
 
 ## 7. Rate Limiting (`app/services/rate_limiter.py`)
 
-In-process token-bucket algorithm keyed by client IP (not user identity).
+In-process token-bucket algorithm keyed by the authenticated user ID (`request.state.user_id`, set by the auth dependencies), falling back to client IP for anonymous requests. Identity keying keeps clients separate when they share one address (NAT, a demo audience on one wifi, a tunnel).
 
 | Limiter | Max Requests | Window | Used By |
 |---------|-------------|--------|---------|
 | `report_rate_limiter` | 5 | 1 hour | `POST /reports` |
 | `route_rate_limiter` | 60 | 1 minute | `GET /route`, `POST /route/risk`, `GET /route-safe` |
 | `emergency_rate_limiter` | 3 | 10 minutes | `POST /reports/emergency` |
+| `nearby_rate_limiter` | 20 | 1 minute | `GET /nearby-places` (fans out to Overpass / Nominatim) |
 
-**Proxy awareness**: `TRUSTED_PROXY_DEPTH` env var (default 0). When >0, uses the Nth-from-last `X-Forwarded-For` entry. When 0, uses `request.client.host` directly.
+**Proxy awareness**: `TRUSTED_PROXY_DEPTH` env var (default 0) is the number of proxies you control in front of the API. When >0 and the `X-Forwarded-For` chain is at least that long, the entry appended by the outermost trusted proxy (`len - depth`) is used; entries left of it are caller-supplied and ignored. When the chain is shorter than the configured depth the header is not trusted. With the default of 0, a loopback peer (ngrok, cloudflared, a proxy on the same host) still yields the address the tunnel appended last; any other peer uses `request.client.host` directly.
 
 **Not shared across instances**: Single-process only. README note: "For multi-instance deployment, replace with Redis."
 

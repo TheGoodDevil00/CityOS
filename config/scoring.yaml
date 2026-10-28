@@ -43,3 +43,4 @@ zone_thresholds:
   safe: 70
   cautious: 40
   risky: 0
+

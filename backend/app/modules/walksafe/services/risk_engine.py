@@ -61,6 +61,7 @@ async def score_route(
         dataset_version=snapshot.road_dataset_version,
         db=db,
     )
+
     segments = []
     matched_length = 0.0
     weighted_score_total = 0.0
