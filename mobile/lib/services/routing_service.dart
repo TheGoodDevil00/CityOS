@@ -26,7 +26,10 @@ class RoutingService {
 
   Future<ScoredRoute?> getSafestRoute(LatLng start, LatLng end) async {
     // Try unified /route-safe endpoint first.
-    final Map<String, dynamic>? scorePayload = await _fetchRouteSafety(start, end);
+    final Map<String, dynamic>? scorePayload = await _fetchRouteSafety(
+      start,
+      end,
+    );
     List<LatLng>? routePoints;
     if (scorePayload != null) {
       final Object? coordsRaw = scorePayload['coordinates'];
@@ -176,6 +179,16 @@ class RoutingService {
   }
 
   Future<http.Response?> _safeGet(Uri uri) async {
+    final http.Response? first = await _attemptGet(uri);
+    if (first != null) {
+      return first;
+    }
+    // Transient first-call failures (cold backend, slow DB round trip) get a
+    // single immediate retry before falling back to the legacy endpoints.
+    return _attemptGet(uri);
+  }
+
+  Future<http.Response?> _attemptGet(Uri uri) async {
     try {
       return await _client.get(uri).timeout(_requestTimeout);
     } catch (e) {
@@ -187,8 +200,7 @@ class RoutingService {
   Map<String, dynamic>? _tryParseJsonMap(String body) =>
       api_utils.tryParseJsonMap(body);
 
-  Map<String, dynamic>? _coerceMap(Object? value) =>
-      api_utils.coerceMap(value);
+  Map<String, dynamic>? _coerceMap(Object? value) => api_utils.coerceMap(value);
 
   double? _asDouble(Object? value) => api_utils.asDouble(value);
 

@@ -1,1 +1,1 @@
-"""Database helpers for the WalkSafe backend."""
+"""Database helpers for the CiVix backend."""

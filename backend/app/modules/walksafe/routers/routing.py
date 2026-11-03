@@ -7,11 +7,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.auth_middleware import optional_auth
-from app.core.rate_limiter import route_rate_limiter
+from app.core.rate_limiter import nearby_rate_limiter, route_rate_limiter
 from app.modules.walksafe.services.risk_engine import score_route
 from app.modules.walksafe.services.routing_service import get_safe_route
 from app.modules.walksafe.services.safety_zone_service import (
     get_safety_zones as load_safety_zones,
+)
+from app.modules.walksafe.services.nearby_places_service import (
+    ALL_CATEGORY,
+    CATEGORY_FILTERS,
+    MAX_RADIUS_METERS,
+    find_nearby_places,
 )
 
 router = APIRouter()
@@ -76,6 +82,44 @@ class Coordinate(BaseModel):
 
 class RouteCoordinates(BaseModel):
     coordinates: List[Coordinate]
+
+
+@router.get("/nearby-places")
+async def nearby_places(
+    lat: float,
+    lon: float,
+    category: str,
+    radius_m: int = 3000,
+    _user: str | None = Depends(optional_auth),
+    _rate: None = Depends(nearby_rate_limiter),
+):
+    if not -90 <= lat <= 90 or not -180 <= lon <= 180:
+        raise HTTPException(status_code=422, detail="Invalid coordinates.")
+    if category != ALL_CATEGORY and category not in CATEGORY_FILTERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported nearby category: {category}.",
+        )
+    if not 100 <= radius_m <= MAX_RADIUS_METERS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"radius_m must be between 100 and {MAX_RADIUS_METERS}.",
+        )
+    try:
+        places = await find_nearby_places(
+            lat=lat,
+            lon=lon,
+            category=category,
+            radius_m=radius_m,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {
+        "category": category,
+        "center": {"lat": lat, "lon": lon},
+        "radius_m": radius_m,
+        "places": places,
+    }
 
 
 @router.get("/route", response_model=Dict[str, List[Dict[str, float]]])

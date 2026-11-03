@@ -69,7 +69,10 @@ class RouteSummaryPanel extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              _ScoreChip(score: route!.averageSafetyScore, color: insights.toneColor),
+              _ScoreChip(
+                score: route!.averageSafetyScore,
+                color: insights.toneColor,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -239,9 +242,9 @@ class _MetricPill extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: const Color(0xFF6A7A76),
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: const Color(0xFF6A7A76)),
           ),
           const SizedBox(height: 2),
           Text(
@@ -279,12 +282,19 @@ class _RouteInsights {
   factory _RouteInsights.fromRoute(ScoredRoute route) {
     final double score = route.averageSafetyScore;
     final int riskySegments = route.segments
-        .where((RouteSegmentSafety segment) => _segmentTier(segment) == _Tier.risky)
+        .where(
+          (RouteSegmentSafety segment) => _segmentTier(segment) == _Tier.risky,
+        )
         .length;
     final int cautiousSegments = route.segments
-        .where((RouteSegmentSafety segment) => _segmentTier(segment) == _Tier.cautious)
+        .where(
+          (RouteSegmentSafety segment) =>
+              _segmentTier(segment) == _Tier.cautious,
+        )
         .length;
-    final int etaMinutes = (route.totalDistanceMeters / 75).clamp(1, 180).round();
+    final int etaMinutes = (route.totalDistanceMeters / 75)
+        .clamp(1, 180)
+        .round();
 
     final Color toneColor;
     final String headline;
